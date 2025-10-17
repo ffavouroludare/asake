@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Personal Hygiene & Dental Education — Interactive Quiz v3</title>
+
+<style>
+  :root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#0f62fe;
+    --accent-2:#0fb5c7;
+    --success:#16a34a;
+    --danger:#ef4444;
+    --glass: rgba(255,255,255,0.6);
+    --radius:14px;
+    --shadow: 0 8px 26px rgba(12,18,28,0.06);
+    --pad:16px;
+    --maxw:1150px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background:linear-gradient(180deg,var(--bg), #eef6ff);
+    color:#0b1220;
+    padding:28px;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{
+    width:100%;
+    max-width:var(--maxw);
+    background:linear-gradient(180deg,#ffffff,#fbfdff);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:20px;
+    overflow:hidden;
+  }
+  .hdr{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+  .logo{
+    width:68px;height:68px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:white;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:22px;
+    box-shadow:0 8px 22px rgba(15,98,254,0.12)
+  }
+  .title h1{margin:0;font-size:20px}
+  .title p{margin:0;color:var(--muted);font-size:13px}
+  .controls{display:flex;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}
+  .btn{
+    background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+    box-shadow:0 8px 22px rgba(15,98,254,0.08)
+  }
+  .btn.secondary{background:transparent;border:1px solid rgba(15,98,254,0.12);color:var(--accent);box-shadow:none}
+  .muted{color:var(--muted);font-size:13px}
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);border-radius:12px;padding:var(--pad);box-shadow:0 6px 18px rgba(12,18,28,0.03);margin-bottom:12px}
+  .q-title{font-weight:700}
+  .meta{color:var(--muted);font-size:13px}
+  .options{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  label.option{display:flex;align-items:center;gap:12px;background:#fbfdff;padding:10px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+  label.option input{accent-color:var(--accent)}
+  label.option.correct{background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.12)}
+  label.option.incorrect{background:rgba(239,68,68,0.04);border-color:rgba(239,68,68,0.08)}
+  input.fill{width:100%;padding:10px;border-radius:10px;border:1px solid #e6edf3;background:#fbfdff}
+  .drag-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .drag-item{min-width:140px;padding:10px;border-radius:10px;background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid rgba(12,18,28,0.03);cursor:grab;text-align:center}
+  .drop-zone{min-width:140px;min-height:44px;border-radius:10px;border:2px dashed rgba(15,98,254,0.12);display:flex;align-items:center;justify-content:center;background:#fbfdff}
+  .drop-zone.correct{border-style:solid;border-color:var(--success);background:rgba(16,185,129,0.06)}
+  .drop-zone.incorrect{border-style:solid;border-color:var(--danger);background:rgba(239,68,68,0.04)}
+  .side{position:sticky;top:28px;height:fit-content}
+  .progress{height:12px;background:#ecf4ff;border-radius:999px;overflow:hidden;margin-top:8px}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%;transition:width 700ms ease}
+  .grade{font-size:28px;font-weight:800;color:var(--accent);}
+  .small{font-size:13px;color:var(--muted)}
+  footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
+  .hidden{display:none !important}
+  .collapsible .content{max-height:0;overflow:hidden;transition:max-height 300ms ease}
+  .collapsible.open .content{max-height:1400px}
+  #confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1000}
+  /* import area */
+  #importArea{display:flex;gap:8px;align-items:center}
+  #importJson{width:100%;height:72px;padding:10px;border-radius:10px;border:1px solid #e6edf3}
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-labelledby="mainTitle">
+  <div class="hdr">
+    <div class="logo">PH</div>
+    <div class="title">
+      <h1 id="mainTitle">Personal Hygiene & Dental Education — Interactive Quiz (v3)</h1>
+      <p>70-question comprehensive quiz • spaced repetition • export/import state</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="startBtn" onclick="startOrReset()">Start / Reset</button>
+    <button class="btn secondary" onclick="toggleSidebar()">Toggle Summary</button>
+    <button class="btn secondary" onclick="exportState()">Export State (JSON)</button>
+    <button class="btn secondary" onclick="document.getElementById('fileInput').click()">Import State (JSON)</button>
+    <input id="fileInput" class="hidden" type="file" accept="application/json" onchange="importStateFile(event)">
+    <div style="margin-left:auto" class="muted">Questions: <strong id="totalCount">70</strong></div>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT -->
+    <main>
+      <div class="card" id="nameCard">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div class="q-title">Learner name</div>
+            <div class="meta">Enter your name — used for leaderboard & export</div>
+          </div>
+          <div style="flex:1">
+            <input id="learnerName" class="fill" placeholder="Your full name (optional)">
+          </div>
+          <div><button class="btn secondary" onclick="saveName()">Save</button></div>
+        </div>
+      </div>
+
+      <div id="quizContainer"></div>
+
+      <div class="card" id="handCard">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="q-title">Interactive: Arrange Handwashing Steps</div>
+            <div class="meta">Drag steps into the numbered boxes</div>
+          </div>
+          <div class="small muted">Bonus point for correct order</div>
+        </div>
+        <div class="drag-row" id="handItems"></div>
+        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+          <div class="drop-zone" data-correct="hw1">1</div>
+          <div class="drop-zone" data-correct="hw2">2</div>
+          <div class="drop-zone" data-correct="hw3">3</div>
+          <div class="drop-zone" data-correct="hw4">4</div>
+          <div class="drop-zone" data-correct="hw5">5</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn" onclick="checkHand()">Check</button>
+          <button class="btn secondary" onclick="resetHand()">Reset</button>
+        </div>
+        <div id="handFB" class="small" style="margin-top:10px;color:var(--muted)"></div>
+      </div>
+
+      <div class="card" id="brushCard">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="q-title">Interactive: Arrange Toothbrushing Steps</div>
+            <div class="meta">Drag steps into the numbered boxes</div>
+          </div>
+          <div class="small muted">Bonus point for correct order</div>
+        </div>
+        <div class="drag-row" id="brushItems"></div>
+        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+          <div class="drop-zone" data-correct="tb1">1</div>
+          <div class="drop-zone" data-correct="tb2">2</div>
+          <div class="drop-zone" data-correct="tb3">3</div>
+          <div class="drop-zone" data-correct="tb4">4</div>
+          <div class="drop-zone" data-correct="tb5">5</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn" onclick="checkBrush()">Check</button>
+          <button class="btn secondary" onclick="resetBrush()">Reset</button>
+        </div>
+        <div id="brushFB" class="small" style="margin-top:10px;color:var(--muted)"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" onclick="showResults()">Show Results & Analytics</button>
+        <button class="btn secondary" onclick="revealAllAnswers()">Reveal Explanations</button>
+        <button class="btn secondary" onclick="saveToLeaderboard()">Save to Leaderboard</button>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <div class="q-title">Import JSON (teacher preload)</div>
+        <div class="meta">Paste previously exported state here to preload progress for a student or class</div>
+        <div id="importArea">
+          <textarea id="importJson" placeholder='Paste exported JSON here and press "Import JSON"'></textarea>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn secondary" onclick="importStateText()">Import JSON</button>
+            <button class="btn secondary" onclick="clearImport()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- RIGHT -->
+    <aside class="card side" id="sidebar">
+      <div>
+        <div class="small">Progress</div>
+        <div class="progress"><i id="progFill"></i></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <div>
+            <div class="small">Score</div>
+            <div style="font-size:20px;font-weight:700" id="scoreDisp">0 / 70</div>
+          </div>
+          <div>
+            <div class="small">Grade</div>
+            <div class="grade" id="letterDisp">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="small">Topic accuracy</div>
+          <canvas id="topicChart" width="300" height="220"></canvas>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small">Leaderboard (local)</div>
+          <div id="leaderboard" style="margin-top:8px;color:var(--muted);max-height:220px;overflow:auto"></div>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+
+  <footer>All content based on the provided Personal Hygiene & Dental Education document. Use the export/import tools to share or preload progress.</footer>
+</div>
+
+<input id="fileLoader" type="file" accept="application/json" class="hidden">
+
+<script>
+/* ============================
+  v3 — 70 QUESTIONS (50 original + 20 new)
+  All items based on uploaded document content
+  Types: 'mc', 'tf', 'fill'
+  Includes explanation and topics
+  ============================ */
+
+/* Spaced repetition frequency (inject missed questions every N answered) */
+const SPACING = 5; // configurable — user requested every 5
+
+const QUESTIONS = [
+  /* 1 */ {id:1, type:'mc', q:'What is the main goal of personal hygiene?', options:['Maintain bodily cleanliness and prevent disease','Only wear fashionable clothes','Collect grooming products','Avoid social interactions'], correct:0, explanation:'Personal hygiene primarily prevents disease and maintains health.', topics:['personal hygiene']},
+  /* 2 */ {id:2, type:'tf', q:'The terms "hygiene" and "cleanliness" mean exactly the same thing.', correct:false, explanation:'Hygiene includes practices to prevent disease; cleanliness is one part of that.', topics:['personal hygiene']},
+  /* 3 */ {id:3, type:'mc', q:'Which is an example of home and everyday hygiene?', options:['Hand washing before meals','Surgical sterilization','Industrial sanitation','Pharmaceutical manufacturing hygiene'], correct:0, explanation:'Home hygiene includes actions like handwashing and food hygiene at home.', topics:['home hygiene','handwashing']},
+  /* 4 */ {id:4, type:'mc', q:'Which practice prevents the spread of infections?', options:['Washing hands with soap','Sharing towels','Avoiding baths','Using the same toothbrush'], correct:0, explanation:'Handwashing with soap removes germs and prevents spread.', topics:['handwashing']},
+  /* 5 */ {id:5, type:'tf', q:'Washing hands for at least 20 seconds is recommended.', correct:true, explanation:'A 20-second scrub helps dislodge and remove microorganisms.', topics:['handwashing']},
+  /* 6 */ {id:6, type:'mc', q:'When should you wash your hands?', options:['After using the toilet','Only when hands look dirty','Once a day','Never'], correct:0, explanation:'Critical situations include after toilet use, before eating, after handling animals, etc.', topics:['handwashing']},
+  /* 7 */ {id:7, type:'fill', q:'Fill in: Personal hygiene helps prevent the spread of _______.', correct:['disease','diseases'], explanation:'Good hygiene reduces transmission of pathogens that cause disease.', topics:['personal hygiene']},
+  /* 8 */ {id:8, type:'mc', q:'Anal cleansing after defecation should be followed by:', options:['Washing hands with soap','Sharing toilet paper','Not washing hands','Eating immediately'], correct:0, explanation:'Always wash hands after anal cleansing to remove pathogens.', topics:['personal hygiene']},
+  /* 9 */ {id:9, type:'mc', q:'Which is a psychological benefit of good hygiene?', options:['Increased confidence','Higher stress','Lower self-esteem','Social isolation'], correct:0, explanation:'Good hygiene boosts self-esteem and aids social interactions.', topics:['psychological']},
+  /*10*/ {id:10, type:'tf', q:'Teaching children good hygiene early reduces the risk of bullying for hygiene issues.', correct:true, explanation:'Early routines help children avoid hygiene-related problems at school.', topics:['education','personal hygiene']},
+
+  /*11*/ {id:11, type:'mc', q:'Which body parts commonly produce sweat and need regular cleaning?', options:['Armpits and groin','Forehead and knees','Elbows and chin','Neck only'], correct:0, explanation:'Armpits and groin have many sweat glands and are prone to odor and infections.', topics:['body hygiene']},
+  /*12*/ {id:12, type:'mc', q:'Recommended bathing frequency (general guidance):', options:['At least weekly and after sweating','Once a year','Never','Once a month'], correct:0, explanation:'Bathe regularly and after heavy sweating to remove bacteria and odor.', topics:['body hygiene']},
+  /*13*/ {id:13, type:'tf', q:'Drying hands with a clean towel prevents recontamination.', correct:true, explanation:'Drying prevents re-transfer of microbes from dirty surfaces and reduces recontamination.', topics:['handwashing']},
+  /*14*/ {id:14, type:'fill', q:'Fill in: Use _____ water and soap to wash hair and scalp.', correct:['clean','clean water'], explanation:'Clean water and soap remove oil and dead skin on the scalp.', topics:['hair']},
+  /*15*/ {id:15, type:'mc', q:'Poor hygiene can lead to which skin condition?', options:['Eczema and ringworm','Myopia','Broken bones','Hearing loss'], correct:0, explanation:'Skin infections and conditions can arise from poor hygiene.', topics:['skin']},
+  /*16*/ {id:16, type:'tf', q:'Sharing towels with others is safe.', correct:false, explanation:'Towels can transmit fungi, lice, and bacteria — avoid sharing.', topics:['personal hygiene']},
+  /*17*/ {id:17, type:'mc', q:'If you cut yourself, you should:', options:['Clean and dress the wound regularly','Ignore it','Cover with dirty cloth','Share bandages'], correct:0, explanation:'Cleaning and dressing helps prevent infection and speeds healing.', topics:['wound care']},
+  /*18*/ {id:18, type:'mc', q:'Athlete’s foot is caused by:', options:['A fungal infection','A vitamin deficiency','A bacterial infection','A viral infection'], correct:0, explanation:'Athlete’s foot is a fungal infection (tinea).', topics:['skin']},
+  /*19*/ {id:19, type:'fill', q:'Fill in: Use _____-friendly soap for sensitive skin.', correct:['hypoallergenic','hypoallergenic soap'], explanation:'Hypoallergenic soaps reduce irritation for sensitive skin.', topics:['skin']},
+  /*20*/ {id:20, type:'mc', q:'To protect skin from harsh weather you should:', options:['Wear appropriate clothing','Use harsh chemicals','Never bathe','Avoid sleep'], correct:0, explanation:'Clothing protects skin from environmental damage.', topics:['skin']},
+
+  /*21*/ {id:21, type:'mc', q:'To reduce head lice risk, you should:', options:['Wash hair and comb with fine-tooth comb','Share combs','Never wash hair','Use someone else’s hat'], correct:0, explanation:'Regular washing and combing reduce lice and nits.', topics:['hair']},
+  /*22*/ {id:22, type:'tf', q:'Use a wide-toothed comb for wet hair to reduce breakage.', correct:true, explanation:'Wide-tooth combs are gentler on wet hair and reduce breakage.', topics:['hair']},
+  /*23*/ {id:23, type:'fill', q:'Fill in: Keep nails ______ to avoid trapping dirt.', correct:['trimmed','trimmed short','short'], explanation:'Short, trimmed nails trap less dirt and reduce infection risk.', topics:['nails']},
+  /*24*/ {id:24, type:'mc', q:'Dandruff shampoos often contain:', options:['Zinc pyrithione or selenium sulfide','Pure sugar','Sandalwood oil only','Olive oil'], correct:0, explanation:'These agents reduce dandruff-causing fungi and oiliness.', topics:['hair']},
+  /*25*/ {id:25, type:'mc', q:'For greasy hair, recommended action is:', options:['Wash regularly or use dry shampoo','Avoid washing','Rinse with vinegar only','Use sand'], correct:0, explanation:'Washing or dry shampoo helps manage excess oil.', topics:['hair']},
+  /*26*/ {id:26, type:'tf', q:'Sharing nail cutters is safe if cleaned afterward.', correct:false, explanation:'Sharing can transmit infections; avoid sharing personal tools.', topics:['nails']},
+  /*27*/ {id:27, type:'mc', q:'Shaving the head can be recommended when:', options:['There is heavy lice infestation','You dislike shampoo','Your teeth hurt','You have a cold'], correct:0, explanation:'Shaving may be used where lice are persistent and other measures fail.', topics:['hair']},
+  /*28*/ {id:28, type:'fill', q:'Fill in: Use a _____-bristled toothbrush (soft/hard).', correct:['soft','soft-bristled'], explanation:'Soft bristles clean effectively without damaging gums.', topics:['dental']},
+  /*29*/ {id:29, type:'mc', q:'Combing wet hair with a wide-tooth comb helps because it:', options:['Reduces breakage','Cures scalp infections','Colors hair','Prevents dandruff entirely'], correct:0, explanation:'Wide-tooth combs reduce pulling and hair loss when wet.', topics:['hair']},
+  /*30*/ {id:30, type:'tf', q:'Conditioner is mandatory for healthy hair.', correct:false, explanation:'Conditioner can help manage hair, but it is not strictly mandatory.', topics:['hair']},
+
+  /*31*/ {id:31, type:'mc', q:'How often should you brush your teeth?', options:['Twice a day','Once a week','Only at dentist visits','Never'], correct:0, explanation:'Brush twice daily to remove plaque and protect enamel.', topics:['dental']},
+  /*32*/ {id:32, type:'fill', q:'Fill in: Use _____ toothpaste for cavity protection.', correct:['fluoride','fluoride toothpaste'], explanation:'Fluoride strengthens enamel and reduces cavities.', topics:['dental']},
+  /*33*/ {id:33, type:'mc', q:'Cleaning between teeth daily prevents:', options:['Gingivitis and tartar buildup','Hair loss','Broken bones','Poor eyesight'], correct:0, explanation:'Interdental cleaning removes plaque where brushes cannot reach.', topics:['dental']},
+  /*34*/ {id:34, type:'tf', q:'Community water fluoridation helps protect teeth against cavities.', correct:true, explanation:'Appropriate fluoride levels aid remineralization of enamel.', topics:['dental','nutrition']},
+  /*35*/ {id:35, type:'mc', q:'Tartar (hardened plaque) is removed by:', options:['A dental professional cleaning','Brushing harder at home','Rinsing with water','Using a metal pick by yourself'], correct:0, explanation:'Only professionals can remove tartar safely.', topics:['dental']},
+  /*36*/ {id:36, type:'mc', q:'Which foods help dental health?', options:['Cheese and plain yogurt','Soda and sweets','Sticky candies','Fruit juices all day'], correct:0, explanation:'Calcium-rich foods help remineralize enamel.', topics:['dental','nutrition']},
+  /*37*/ {id:37, type:'fill', q:'Fill in: Floss at least ____ a day.', correct:['once','one','daily'], explanation:'Daily flossing removes interdental plaque.', topics:['dental']},
+  /*38*/ {id:38, type:'mc', q:'Poor oral health has been linked to which systemic condition?', options:['Cardiovascular disease','Near-sightedness','Skin eczema','Asthma only'], correct:0, explanation:'Oral infections are associated with systemic inflammation and cardiovascular risk.', topics:['dental','health']},
+  /*39*/ {id:39, type:'tf', q:'Chewing sugar-free gum can help clean teeth by stimulating saliva.', correct:true, explanation:'Increased saliva helps neutralize acids and clean food particles.', topics:['dental']},
+  /*40*/ {id:40, type:'mc', q:'If teeth are sensitive to cold, you might try:', options:['Desensitizing toothpaste or see a dentist','Brushing aggressively','Chewing ice','Avoid drinking water'], correct:0, explanation:'Desensitizing toothpaste or dental care addresses sensitivity.', topics:['dental']},
+
+  /*41*/ {id:41, type:'mc', q:'What habit increases risk of gum disease?', options:['Smoking','Drinking water','Eating vegetables','Brushing twice daily'], correct:0, explanation:'Smoking impairs tissue healing and increases periodontal disease risk.', topics:['dental']},
+  /*42*/ {id:42, type:'fill', q:'Fill in: Frequent _____ drinks can erode enamel (one word).', correct:['acidic','acidic drinks'], explanation:'Acidic beverages lower pH and promote enamel demineralization.', topics:['dental','nutrition']},
+  /*43*/ {id:43, type:'mc', q:'A key preventive dental step is:', options:['Regular professional cleaning and fluoride','Avoiding the dentist','Self-extraction','No brushing'], correct:0, explanation:'Professional care plus daily hygiene prevents many dental issues.', topics:['dental']},
+  /*44*/ {id:44, type:'tf', q:'Pregnancy can increase risk of gum inflammation due to hormonal changes.', correct:true, explanation:'Hormonal changes can cause pregnancy gingivitis; extra care is needed.', topics:['dental','health']},
+  /*45*/ {id:45, type:'mc', q:'How should dentures be stored overnight (recommended)?', options:['In a dry container','Kept in while sleeping','Rinsed with bleach','Left in boiling water'], correct:0, explanation:'Dry storage overnight reduces Candida growth on dentures.', topics:['appliances','dental']},
+  /*46*/ {id:46, type:'mc', q:'When cleaning dentures, avoid using:', options:['Toothpaste (too abrasive)','Denture cleansing tablets weekly','Soft brush made for dentures','Soaking as directed weekly'], correct:0, explanation:'Toothpaste can scratch acrylic dentures; use denture cleansers.', topics:['appliances','dental']},
+  /*47*/ {id:47, type:'tf', q:'People with intellectual disability may need tailored oral-care interventions.', correct:true, explanation:'Tailored supports and caregiver training improve oral outcomes for such groups.', topics:['dental','inclusion']},
+  /*48*/ {id:48, type:'fill', q:'Fill in: Sucrose fuels bacteria like _____.', correct:['streptococcus mutans','streptococcus mutans'], explanation:'S. mutans produces acids and helps build plaque when sugar is available.', topics:['dental','nutrition']},
+  /*49*/ {id:49, type:'mc', q:'Which habit increases cavity risk most?', options:['Frequent snacking throughout the day','Three structured meals only','Drinking water with meals','Eating crunchy vegetables'], correct:0, explanation:'Frequent sugar exposure prolongs acid attacks on enamel.', topics:['dental','nutrition']},
+  /*50*/ {id:50, type:'mc', q:'Good hygiene overall leads to:', options:['Lower health costs and better social acceptance','More disease','Higher costs','Worse relationships'], correct:0, explanation:'Prevention reduces illness and associated costs and improves social outcomes.', topics:['benefits','personal hygiene']},
+
+  /* NEW QUESTIONS 51-70 (from the provided document) */
+  /*51*/ {id:51, type:'mc', q:'Which of these is included in personal grooming but may not be strictly hygienic?', options:['Using perfume or deodorant','Washing hands','Brushing teeth','Trimming nails'], correct:0, explanation:'Grooming (e.g., perfume) affects appearance but is not strictly hygiene.', topics:['personal hygiene','grooming']},
+  /*52*/ {id:52, type:'tf', q:'Anal hygiene may include washing the anus after defecation.', correct:true, explanation:'Anal cleansing methods include washing with water or using toilet paper; hands must be washed after.', topics:['personal hygiene']},
+  /*53*/ {id:53, type:'mc', q:'What is a common cause of smelly feet?', options:['Bacteria acting on sweat in confined shoes','Lack of exercise','Poor eyesight','Eating spicy food only'], correct:0, explanation:'Bacteria break down sweat in socks/shoes producing odor.', topics:['foot hygiene']},
+  /*54*/ {id:54, type:'fill', q:'Fill in: Toenails can accumulate dirt and increase risk of _____ (one word).', correct:['fungal infections','infection','fungus'], explanation:'Dirty toenails can promote fungal growth such as athlete’s foot.', topics:['foot hygiene']},
+  /*55*/ {id:55, type:'mc', q:'Podoconiosis (mossy foot) prevention includes:', options:['Wearing shoes regularly','Eating more sugar','Not washing feet','Using scented soaps'], correct:0, explanation:'Wearing shoes prevents soil particles from penetrating feet and causing podoconiosis.', topics:['foot hygiene','disease prevention']},
+  /*56*/ {id:56, type:'mc', q:'Which is correct about menstrual hygiene?', options:['Wash external genitals daily and change pads regularly','Avoid washing during menstruation','Use dirty cloths','Never change pads'], correct:0, explanation:'Clean external washing and frequent change of pads reduces infection risk.', topics:['menstrual hygiene']},
+  /*57*/ {id:57, type:'tf', q:'Using scented products excessively on genital areas can cause thrush.', correct:true, explanation:'Over-cleaning with harsh or scented products can disrupt normal flora and cause yeast infection.', topics:['menstrual hygiene']},
+  /*58*/ {id:58, type:'mc', q:'Which area is especially important to clean to prevent trachoma (eye infection)?', options:['Eyes and face daily','Shoes','Ears only','Fingernails only'], correct:0, explanation:'Regular face and eye hygiene reduce discharge accumulation and trachoma risk.', topics:['face hygiene','disease prevention']},
+  /*59*/ {id:59, type:'fill', q:'Fill in: Clean water and soap help remove _____ and dead skin from the scalp.', correct:['oil','dirt','sebum'], explanation:'Washing removes oil, dead skin and debris from scalp.', topics:['hair']},
+  /*60*/ {id:60, type:'mc', q:'Ear hygiene advice includes:', options:['Wash outer ear with soap and water; do not insert objects into canal','Insert cotton buds deep into ear','Never touch ears','Use sharp objects to clean'], correct:0, explanation:'Outer ear washing is fine; avoid inserting objects which may damage the ear.', topics:['ear hygiene']},
+  /*61*/ {id:61, type:'mc', q:'Why are underwear and inner clothes recommended to be changed more frequently?', options:['They are next to the skin and collect sweat and cells','Because outer clothes are dirty','To look fashionable','To save water'], correct:0, explanation:'Underwear accumulates sweat and skin cells which harbor bacteria.', topics:['clothes hygiene']},
+  /*62*/ {id:62, type:'tf', q:'Boiling or ironing washed clothes can help kill lice and nits.', correct:true, explanation:'Heat treatment via boiling/ironing can destroy lice/nits and reduce reinfestation.', topics:['clothes hygiene']},
+  /*63*/ {id:63, type:'fill', q:'Fill in: After handling pets or animals, you should wash your _____ with soap.', correct:['hands','hand'], explanation:'Animal contact can transfer microbes; handwashing reduces risk.', topics:['personal hygiene']},
+  /*64*/ {id:64, type:'mc', q:'What should you do when you cough or sneeze to reduce spread?', options:['Cover mouth and nose with tissue or sleeve','Keep mouth open','Do nothing','Cough into your hand then touch food'], correct:0, explanation:'Covering coughs/sneezes prevents dispersal of respiratory droplets.', topics:['respiratory hygiene']},
+  /*65*/ {id:65, type:'tf', q:'Washing your face every morning helps remove eye discharge and reduce fly attraction.', correct:true, explanation:'Eye discharge can attract flies which transmit infections like trachoma.', topics:['face hygiene']},
+  /*66*/ {id:66, type:'mc', q:'Which is a correct reason to replace your toothbrush regularly?', options:['Bristles wear and lose effectiveness','It looks new','Color fades','To save toothpaste'], correct:0, explanation:'Worn bristles clean less effectively and may harbor bacteria.', topics:['dental']},
+  /*67*/ {id:67, type:'mc', q:'Which food component helps remineralize teeth?', options:['Calcium (milk, cheese)','Sucrose','Acidic drinks','Sticky sweets'], correct:0, explanation:'Calcium-rich foods help strengthen enamel and remineralize teeth.', topics:['dental','nutrition']},
+  /*68*/ {id:68, type:'tf', q:'Regular professional dental checkups can detect problems early and are more affordable long-term.', correct:true, explanation:'Prevention and early detection reduce the need for expensive restorative work.', topics:['dental']},
+  /*69*/ {id:69, type:'mc', q:'What is an advantage of teaching dental hygiene in schools?', options:['Establishes lifelong habits and reduces inequalities in access','Increases sugar consumption','Causes tooth loss','Teaches harmful practices'], correct:0, explanation:'School programs reach many children and teach prevention regardless of home access.', topics:['education','dental']},
+  /*70*/ {id:70, type:'fill', q:'Fill in: Rinse your mouth after meals or at least ____ to remove debris (one word: during the day).', correct:['during','daytime','during the day'], explanation:'Rinsing helps displace food particles and reduce plaque formation.', topics:['dental','oral hygiene']}
+];
+
+/* ============================
+  STATE and utilities
+  ============================ */
+let state = {
+  order: [],           // order of question ids
+  answered: {},        // id -> {correct:boolean, given:..., attempts:number}
+  score: 0,
+  reviewQueue: [],     // missed question ids queued
+  badges: new Set(),
+  name: '',
+  topicStats: {},      // topic -> {total, correct}
+  startTime: null
+};
+
+const TOTAL_Q = QUESTIONS.length;
+document.getElementById('totalCount').textContent = TOTAL_Q;
+
+/* shuffle */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+
+/* escape */
+function esc(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* START / RESET */
+function startOrReset(){
+  state = { order: [], answered:{}, score:0, reviewQueue:[], badges:new Set(), name: state.name || '', topicStats:{}, startTime: Date.now() };
+  const ids = QUESTIONS.map(q=>q.id);
+  shuffle(ids);
+  state.order = ids;
+  renderAllQuestions();
+  resetHand();
+  resetBrush();
+  updateSidebar();
+  alert('Quiz initialized/reset. Good luck!');
+}
+
+/* save name */
+function saveName(){
+  const n = document.getElementById('learnerName').value.trim();
+  state.name = n;
+  localStorage.setItem('ph_learnerName', n);
+  alert('Name saved locally.');
+}
+
+/* render questions */
+function renderAllQuestions(){
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+  QUESTIONS.forEach((q, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-'+q.id;
+    let typeLabel = (q.type==='mc') ? 'Multiple choice' : q.type==='tf' ? 'True / False' : 'Fill-in';
+    const header = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="q-title">Q${idx+1}. ${esc(q.q)}</div><div class="meta">${typeLabel} • Topic: ${q.topics.join(', ')}</div></div>
+      <div class="small muted">ID: ${q.id}</div>
+    </div>`;
+    let body = '';
+    if(q.type === 'mc'){
+      body += '<div class="options">';
+      q.options.forEach((opt,i)=>{
+        body += `<label class="option" id="opt-${q.id}-${i}">
+                  <input type="radio" name="q-${q.id}" value="${i}"> ${esc(opt)}
+                </label>`;
+      });
+      body += '</div>';
+      body += `<div style="margin-top:10px"><button class="btn" onclick="submitMC(${q.id})">Submit</button>
+               <button class="btn secondary" onclick="revealAnswer(${q.id})">Explain</button></div>`;
+    } else if(q.type === 'tf'){
+      body += `<div class="options">
+                 <label class="option"><input type="radio" name="q-${q.id}" value="true"> True</label>
+                 <label class="option"><input type="radio" name="q-${q.id}" value="false"> False</label>
+               </div>`;
+      body += `<div style="margin-top:10px"><button class="btn" onclick="submitTF(${q.id})">Submit</button>
+               <button class="btn secondary" onclick="revealAnswer(${q.id})">Explain</button></div>`;
+    } else {
+      body += `<div style="margin-top:8px"><input id="fill-${q.id}" class="fill" placeholder="Type your answer"></div>`;
+      body += `<div style="margin-top:10px"><button class="btn" onclick="submitFill(${q.id})">Submit</button>
+               <button class="btn secondary" onclick="revealAnswer(${q.id})">Explain</button></div>`;
+    }
+    body += `<div id="fb-${q.id}" class="small" style="margin-top:8px;color:var(--muted)"></div>`;
+    card.innerHTML = header + body;
+    container.appendChild(card);
+  });
+}
+
+/* submit handlers */
+function submitMC(id){
+  const q = QUESTIONS.find(x=>x.id===id);
+  const sel = document.querySelector(`#card-${id} input[name="q-${id}"]:checked`);
+  const fb = document.getElementById('fb-'+id);
+  if(!sel){ fb.textContent='Please choose an option.'; fb.style.color='var(--danger)'; return; }
+  const chosen = parseInt(sel.value,10);
+  const correct = (chosen === q.correct);
+  if(correct){
+    fb.textContent = '✅ Correct — ' + q.explanation;
+    fb.style.color = 'var(--success)';
+  } else {
+    fb.textContent = '❌ Incorrect — ' + q.explanation;
+    fb.style.color = 'var(--danger)';
+    scheduleReview(id);
+  }
+  markAnswered(id, correct);
+  // highlight
+  document.querySelectorAll(`#card-${id} .option`).forEach((el,i)=>{ el.classList.toggle('correct', i===q.correct); if(i===chosen && !correct) el.classList.add('incorrect'); });
+  updateSidebar();
+}
+
+function submitTF(id){
+  const q = QUESTIONS.find(x=>x.id===id);
+  const sel = document.querySelector(`#card-${id} input[name="q-${id}"]:checked`);
+  const fb = document.getElementById('fb-'+id);
+  if(!sel){ fb.textContent='Choose True or False.'; fb.style.color='var(--danger)'; return; }
+  const chosen = (sel.value === 'true');
+  const correct = (chosen === q.correct);
+  if(correct){
+    fb.textContent = '✅ Correct — ' + q.explanation;
+    fb.style.color = 'var(--success)';
+  } else {
+    fb.textContent = '❌ Incorrect — ' + q.explanation;
+    fb.style.color = 'var(--danger)';
+    scheduleReview(id);
+  }
+  markAnswered(id, correct);
+  document.querySelectorAll(`#card-${id} .option`).forEach(el=>{
+    const val = el.querySelector('input').value === 'true';
+    el.classList.toggle('correct', val === q.correct);
+    if(val !== q.correct && el.querySelector('input').checked) el.classList.add('incorrect');
+  });
+  updateSidebar();
+}
+
+function submitFill(id){
+  const q = QUESTIONS.find(x=>x.id===id);
+  const inp = document.getElementById('fill-'+id);
+  const fb = document.getElementById('fb-'+id);
+  const val = (inp && inp.value) ? inp.value.trim().toLowerCase() : '';
+  if(!val){ fb.textContent='Enter an answer.'; fb.style.color='var(--danger)'; return; }
+  const matches = q.correct.some(ans => ans.toLowerCase() === val);
+  if(matches){
+    fb.textContent = '✅ Correct — ' + q.explanation;
+    fb.style.color = 'var(--success)';
+  } else {
+    fb.textContent = '❌ Incorrect — ' + q.explanation;
+    fb.style.color = 'var(--danger)';
+    scheduleReview(id);
+  }
+  markAnswered(id, matches);
+  updateSidebar();
+}
+
+/* mark answered */
+function markAnswered(id, correct){
+  if(!state.answered[id]){
+    if(correct) state.score++;
+    state.answered[id] = { attempts:1, correct, timestamp:Date.now() };
+  } else {
+    // update attempts; if already answered incorrectly before and now correct, add 1 point
+    if(!state.answered[id].correct && correct) state.score++;
+    state.answered[id].attempts += 1;
+    state.answered[id].correct = correct;
+    state.answered[id].timestamp = Date.now();
+  }
+  // update topic stats
+  const q = QUESTIONS.find(x=>x.id===id);
+  q.topics.forEach(topic=>{
+    if(!state.topicStats[topic]) state.topicStats[topic] = { total:0, correct:0 };
+    // Count total only on first time answered
+    if(state.answered[id].attempts === 1) state.topicStats[topic].total++;
+    if(correct) state.topicStats[topic].correct++;
+  });
+
+  // check for spaced repetition injection
+  maybeInjectReview();
+}
+
+/* spaced repetition scheduling */
+function scheduleReview(id){
+  if(!state.reviewQueue.includes(id)) state.reviewQueue.push(id);
+}
+
+/* maybe inject review when answeredCount % SPACING === 0 */
+function maybeInjectReview(){
+  const answeredCount = Object.keys(state.answered).length;
+  if(answeredCount > 0 && answeredCount % SPACING === 0 && state.reviewQueue.length > 0){
+    const id = state.reviewQueue.shift();
+    const card = document.getElementById('card-'+id);
+    if(card){
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+      card.style.boxShadow = '0 8px 30px rgba(15,98,254,0.12)';
+      setTimeout(()=> card.style.boxShadow = '', 1400);
+      // also mark explanation to highlight it's a review
+      const fb = document.getElementById('fb-'+id);
+      if(fb) fb.textContent = '🔁 Review: ' + (fb.textContent || '') ;
+    }
+  }
+}
+
+/* reveal explanation for a question */
+function revealAnswer(id){
+  const q = QUESTIONS.find(x=>x.id===id);
+  const fb = document.getElementById('fb-'+id);
+  if(!fb) return;
+  fb.textContent = 'Explanation: ' + q.explanation;
+  fb.style.color = 'var(--muted)';
+}
+
+/* reveal all answers */
+function revealAllAnswers(){
+  QUESTIONS.forEach(q=>{
+    const fb = document.getElementById('fb-'+q.id);
+    if(!fb) return;
+    if(q.type === 'mc') fb.textContent = 'Answer: ' + q.options[q.correct] + ' — ' + q.explanation;
+    else if(q.type === 'tf') fb.textContent = 'Answer: ' + (q.correct ? 'True' : 'False') + ' — ' + q.explanation;
+    else fb.textContent = 'Acceptable answers: ' + q.correct.join(' / ') + ' — ' + q.explanation;
+    fb.style.color = 'var(--muted)';
+  });
+}
+
+/* update sidebar and topic chart */
+let topicChart = null;
+function updateSidebar(){
+  document.getElementById('scoreDisp').textContent = `${state.score} / ${TOTAL_Q}`;
+  const percent = Math.round((state.score / TOTAL_Q) * 100);
+  document.getElementById('letterDisp').textContent = gradeFromPercent(percent);
+  document.getElementById('progFill').style.width = percent + '%';
+  updateTopicChart();
+}
+
+/* grade */
+function gradeFromPercent(p){
+  if(p>=90) return 'A';
+  if(p>=80) return 'B';
+  if(p>=70) return 'C';
+  if(p>=60) return 'D';
+  return 'F';
+}
+
+/* topic chart using simple inline bar (no external lib to keep single file) */
+function updateTopicChart(){
+  // collect topics
+  const topicMap = {};
+  QUESTIONS.forEach(q => q.topics.forEach(t => topicMap[t]=true));
+  const topics = Object.keys(topicMap);
+  const labels = topics;
+  const data = topics.map(t=>{
+    const s = state.topicStats[t] || { total:0, correct:0 };
+    return s.total === 0 ? 0 : Math.round((s.correct / s.total) * 100);
+  });
+
+  // simple canvas bar chart
+  const canvas = document.getElementById('topicChart');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width;
+  const h = canvas.height;
+  const barW = Math.max(20, (w - 40) / labels.length - 10);
+  ctx.fillStyle = '#eef6ff';
+  ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = 'rgba(15,98,254,0.9)';
+  labels.forEach((lab,i)=>{
+    const x = 10 + i * (barW + 10);
+    const barH = Math.round((data[i] / 100) * (h - 40));
+    ctx.fillStyle = 'rgba(15,98,254,0.85)';
+    ctx.fillRect(x, h - 30 - barH, barW, barH);
+    ctx.fillStyle = '#0b1220';
+    ctx.font = '10px Arial';
+    ctx.fillText(lab, x, h-10, barW+10);
+    ctx.fillText(data[i] + '%', x, h - 35 - barH);
+  });
+
+  renderLeaderboard();
+}
+
+/* ------------ Handwashing drag & drop ------------- */
+const HAND_STEPS = [
+  {id:'hw1', text:'Wet your hands with clean water'},
+  {id:'hw2', text:'Apply enough soap to cover all surfaces'},
+  {id:'hw3', text:'Rub hands for at least 20 seconds'},
+  {id:'hw4', text:'Rinse hands with clean water'},
+  {id:'hw5', text:'Dry hands with a clean towel'}
+];
+
+function resetHand(){
+  const area = document.getElementById('handItems');
+  area.innerHTML = '';
+  const arr = shuffle([...HAND_STEPS]);
+  arr.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'drag-item';
+    el.id = it.id;
+    el.draggable = true;
+    el.textContent = it.text;
+    el.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', it.id));
+    area.appendChild(el);
+  });
+  document.querySelectorAll('#handCard .drop-zone').forEach(z=>{
+    z.innerHTML = z.getAttribute('data-placeholder') || z.textContent;
+    z.classList.remove('correct','incorrect');
+    z.ondragover = e => e.preventDefault();
+    z.ondrop = e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); const dragged = document.getElementById(id); if(dragged) e.target.innerHTML=''; e.target.appendChild(dragged); }
+  });
+  document.getElementById('handFB').textContent = '';
+}
+
+function checkHand(){
+  const zones = document.querySelectorAll('#handCard .drop-zone');
+  let correctCount = 0;
+  zones.forEach(z=>{
+    const expected = z.dataset.correct;
+    const child = z.querySelector('.drag-item');
+    if(child && child.id === expected){ z.classList.add('correct'); z.classList.remove('incorrect'); correctCount++; } else { z.classList.add('incorrect'); z.classList.remove('correct'); }
+  });
+  const fb = document.getElementById('handFB');
+  if(correctCount === zones.length){
+    fb.textContent = 'Perfect — handwashing order correct! +1 bonus point';
+    fb.style.color = 'var(--success)';
+    if(!state.answered['handwash']){ state.answered['handwash']={correct:true}; state.score++; updateSidebar(); giveBadge('Hand Hygiene Pro'); }
+  } else {
+    fb.textContent = `${correctCount} / ${zones.length} correct — try again`;
+    fb.style.color = 'var(--muted)';
+  }
+}
+
+/* ------------- Toothbrushing drag & drop ------------- */
+const BRUSH_STEPS = [
+  {id:'tb1', text:'Apply fluoride toothpaste to a soft-bristled brush'},
+  {id:'tb2', text:'Angle bristles toward gumline and brush in small circles'},
+  {id:'tb3', text:'Brush all sides of each tooth and chewing surfaces'},
+  {id:'tb4', text:'Brush your tongue and rinse mouth with water'},
+  {id:'tb5', text:'Rinse brush and replace when bristles wear'}
+];
+
+function resetBrush(){
+  const area = document.getElementById('brushItems');
+  area.innerHTML = '';
+  const arr = shuffle([...BRUSH_STEPS]);
+  arr.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'drag-item';
+    el.id = it.id;
+    el.draggable = true;
+    el.textContent = it.text;
+    el.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', it.id));
+    area.appendChild(el);
+  });
+  document.querySelectorAll('#brushCard .drop-zone').forEach(z=>{
+    z.innerHTML = z.getAttribute('data-placeholder') || z.textContent;
+    z.classList.remove('correct','incorrect');
+    z.ondragover = e => e.preventDefault();
+    z.ondrop = e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); const dragged = document.getElementById(id); if(dragged) e.target.innerHTML=''; e.target.appendChild(dragged); }
+  });
+  document.getElementById('brushFB').textContent = '';
+}
+
+function checkBrush(){
+  const zones = document.querySelectorAll('#brushCard .drop-zone');
+  let correctCount = 0;
+  zones.forEach(z=>{
+    const expected = z.dataset.correct;
+    const child = z.querySelector('.drag-item');
+    if(child && child.id === expected){ z.classList.add('correct'); z.classList.remove('incorrect'); correctCount++; } else { z.classList.add('incorrect'); z.classList.remove('correct'); }
+  });
+  const fb = document.getElementById('brushFB');
+  if(correctCount === zones.length){
+    fb.textContent = 'Great — toothbrushing sequence correct! +1 bonus point';
+    fb.style.color = 'var(--success)';
+    if(!state.answered['brush']){ state.answered['brush']={correct:true}; state.score++; updateSidebar(); giveBadge('Tooth Guardian'); }
+  } else {
+    fb.textContent = `${correctCount} / ${zones.length} correct — try again`;
+    fb.style.color = 'var(--muted)';
+  }
+}
+
+/* ---------- Gamification badges ---------- */
+function giveBadge(name){
+  state.badges.add(name);
+  const el = document.createElement('div');
+  el.textContent = '🏅 ' + name;
+  el.style.position = 'fixed';
+  el.style.right = '18px';
+  el.style.bottom = '18px';
+  el.style.background = 'linear-gradient(90deg,var(--accent),var(--accent-2))';
+  el.style.color = 'white';
+  el.style.padding = '10px 12px';
+  el.style.borderRadius = '10px';
+  el.style.boxShadow = '0 8px 22px rgba(15,98,254,0.12)';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2800);
+}
+
+/* ----------- Leaderboard (local) ---------- */
+function saveToLeaderboard(){
+  const name = state.name || document.getElementById('learnerName').value.trim() || 'Anonymous';
+  const pct = Math.round((state.score / TOTAL_Q) * 100);
+  const record = {name, score: state.score, percent: pct, date: new Date().toLocaleString()};
+  const key = 'ph_leaderboard_v3';
+  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+  arr.push(record);
+  arr.sort((a,b)=> b.percent - a.percent || b.score - a.score);
+  arr.splice(10);
+  localStorage.setItem(key, JSON.stringify(arr));
+  renderLeaderboard();
+  alert('Saved to local leaderboard.');
+}
+function renderLeaderboard(){
+  const key = 'ph_leaderboard_v3';
+  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+  const el = document.getElementById('leaderboard');
+  if(arr.length === 0){ el.innerHTML = '<div class="small muted">No local records yet</div>'; return; }
+  el.innerHTML = arr.map(r=> `<div style="padding:8px;border-bottom:1px dashed #eef7ff"><strong>${esc(r.name)}</strong> — ${r.percent}% (${r.score}/${TOTAL_Q})<div class="small muted">${r.date}</div></div>`).join('');
+}
+
+/* ---------- Results & analytics ---------- */
+function showResults(){
+  const pct = Math.round((state.score / TOTAL_Q) * 100);
+  const grade = gradeFromPercent(pct);
+  const badges = Array.from(state.badges).join(', ') || '—';
+  alert(`Final Score: ${state.score} / ${TOTAL_Q}\nPercent: ${pct}%\nGrade: ${grade}\nBadges: ${badges}`);
+}
+
+/* ---------- Export / Import quiz state as JSON ---------- */
+function exportState(){
+  const exportObj = {
+    meta:{ exportedAt: new Date().toISOString(), totalQuestions: TOTAL_Q },
+    state: {
+      answered: state.answered,
+      score: state.score,
+      reviewQueue: state.reviewQueue,
+      badges: Array.from(state.badges),
+      name: state.name,
+      topicStats: state.topicStats
+    }
+  };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.name ? state.name.replace(/\s+/g,'_') + '_' : '') + 'hygiene_quiz_state.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  alert('Quiz state exported as JSON.');
+}
+
+function importStateFile(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      applyImportedState(parsed);
+      alert('Imported state from file.');
+    } catch(err){
+      alert('Invalid JSON file.');
+    }
+  };
+  reader.readAsText(file);
+  // reset the input so same file can be re-selected later
+  e.target.value = '';
+}
+
+function importStateText(){
+  const txt = document.getElementById('importJson').value.trim();
+  if(!txt){ alert('Paste JSON into the box first.'); return; }
+  try {
+    const parsed = JSON.parse(txt);
+    applyImportedState(parsed);
+    alert('Imported state from pasted JSON.');
+  } catch(err){
+    alert('Invalid JSON.');
+  }
+}
+
+function applyImportedState(parsed){
+  if(!parsed || !parsed.state) { alert('Unsupported state format'); return; }
+  const s = parsed.state;
+  // set state fields safely
+  state.answered = s.answered || {};
+  state.score = s.score || 0;
+  state.reviewQueue = s.reviewQueue || [];
+  state.badges = new Set((s.badges) || []);
+  state.name = s.name || '';
+  state.topicStats = s.topicStats || {};
+  if(state.name) document.getElementById('learnerName').value = state.name;
+  // update UI: mark answered items in quiz
+  Object.keys(state.answered).forEach(id => {
+    const fb = document.getElementById('fb-'+id);
+    if(fb){
+      const entry = state.answered[id];
+      fb.textContent = entry.correct ? '✅ (preloaded) — Previously correct' : '❌ (preloaded) — Previously incorrect';
+      fb.style.color = entry.correct ? 'var(--success)' : 'var(--danger)';
+    }
+  });
+  updateSidebar();
+}
+
+/* clear import area */
+function clearImport(){
+  document.getElementById('importJson').value = '';
+}
+
+/* reveal all answers utility */
+function revealAllAnswers(){
+  QUESTIONS.forEach(q=>{
+    const fb = document.getElementById('fb-'+q.id);
+    if(!fb) return;
+    if(q.type === 'mc') fb.textContent = 'Answer: ' + q.options[q.correct] + ' — ' + q.explanation;
+    else if(q.type === 'tf') fb.textContent = 'Answer: ' + (q.correct ? 'True' : 'False') + ' — ' + q.explanation;
+    else fb.textContent = 'Acceptable answers: ' + q.correct.join(' / ') + ' — ' + q.explanation;
+    fb.style.color = 'var(--muted)';
+  });
+}
+
+/* toggle sidebar */
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('hidden'); }
+
+/* initial setup on load */
+window.addEventListener('load', ()=>{
+  const saved = localStorage.getItem('ph_learnerName') || '';
+  if(saved) document.getElementById('learnerName').value = saved;
+  document.querySelectorAll('.drop-zone').forEach(z => z.setAttribute('data-placeholder', z.textContent));
+  startOrReset();
+  renderLeaderboard();
+});
+
+/* expose small helpers for debugging */
+window._PHv3 = { QUESTIONS, state, exportState, importStateText, startOrReset };
+
+</script>
+</body>
+</html>
