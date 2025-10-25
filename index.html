@@ -6,82 +6,196 @@
 <title>Personal Hygiene & Dental Education — Interactive Quiz v3</title>
 
 <style>
-  :root{
-    --bg:#f5f7fb;
-    --card:#ffffff;
-    --muted:#6b7280;
-    --accent:#0f62fe;
-    --accent-2:#0fb5c7;
-    --success:#16a34a;
-    --danger:#ef4444;
-    --glass: rgba(255,255,255,0.6);
-    --radius:14px;
-    --shadow: 0 8px 26px rgba(12,18,28,0.06);
-    --pad:16px;
-    --maxw:1150px;
+  /* =======================================================
+ * Base Variables and Reset (Keep as is)
+ * ======================================================= */
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --accent:#0f62fe;
+  --accent-2:#0fb5c7;
+  --success:#16a34a;
+  --danger:#ef4444;
+  --glass: rgba(255,255,255,0.6);
+  --radius:14px;
+  --shadow: 0 8px 26px rgba(12,18,28,0.06);
+  --pad:16px;
+  --maxw:1150px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:linear-gradient(180deg,var(--bg), #eef6ff);
+  color:#0b1220;
+  padding:28px;
+  display:flex;
+  justify-content:center;
+}
+.wrap{
+  width:100%;
+  max-width:var(--maxw);
+  background:linear-gradient(180deg,#ffffff,#fbfdff);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  padding:20px;
+  overflow:hidden;
+}
+.hdr{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.logo{
+  width:68px;height:68px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:white;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 8px 22px rgba(15,98,254,0.12)
+}
+.title h1{margin:0;font-size:20px}
+.title p{margin:0;color:var(--muted);font-size:13px}
+.controls{display:flex;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}
+.btn{
+  background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+  box-shadow:0 8px 22px rgba(15,98,254,0.08);
+  transition: opacity 0.2s; /* Added for better tap feedback */
+}
+.btn.secondary{background:transparent;border:1px solid rgba(15,98,254,0.12);color:var(--accent);box-shadow:none}
+.muted{color:var(--muted);font-size:13px}
+
+/* =======================================================
+ * Layout (Desktop Default)
+ * ======================================================= */
+.layout{display:grid;grid-template-columns:1fr 360px;gap:18px}
+.card{background:var(--card);border-radius:12px;padding:var(--pad);box-shadow:0 6px 18px rgba(12,18,28,0.03);margin-bottom:12px}
+.q-title{font-weight:700}
+.meta{color:var(--muted);font-size:13px}
+.options{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+label.option{display:flex;align-items:center;gap:12px;background:#fbfdff;padding:10px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+label.option input{accent-color:var(--accent)}
+label.option.correct{background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.12)}
+label.option.incorrect{background:rgba(239,68,68,0.04);border-color:rgba(239,68,68,0.08)}
+input.fill{width:100%;padding:10px;border-radius:10px;border:1px solid #e6edf3;background:#fbfdff}
+
+/* Drag & Drop */
+.drag-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+.drag-item{min-width:140px;padding:10px;border-radius:10px;background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid rgba(12,18,28,0.03);cursor:grab;text-align:center}
+.drop-zone{min-width:140px;min-height:44px;border-radius:10px;border:2px dashed rgba(15,98,254,0.12);display:flex;align-items:center;justify-content:center;background:#fbfdff}
+.drop-zone.correct{border-style:solid;border-color:var(--success);background:rgba(16,185,129,0.06)}
+.drop-zone.incorrect{border-style:solid;border-color:var(--danger);background:rgba(239,68,68,0.04)}
+
+/* Sidebar */
+.side{position:sticky;top:28px;height:fit-content}
+.progress{height:12px;background:#ecf4ff;border-radius:999px;overflow:hidden;margin-top:8px}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%;transition:width 700ms ease}
+.grade{font-size:28px;font-weight:800;color:var(--accent);}
+.small{font-size:13px;color:var(--muted)}
+footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
+.hidden{display:none !important}
+.collapsible .content{max-height:0;overflow:hidden;transition:max-height 300ms ease}
+.collapsible.open .content{max-height:1400px}
+#confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1000}
+/* import area */
+#importArea{display:flex;gap:8px;align-items:center}
+#importJson{width:100%;height:72px;padding:10px;border-radius:10px;border:1px solid #e6edf3}
+
+
+/* =======================================================
+ * MEDIA QUERY for Mobile & Tablet (Less than 980px)
+ * ======================================================= */
+@media (max-width: 980px) {
+  /* 1. Base Layout Stacking */
+  body {
+    padding: 12px; /* Reduce padding on body */
   }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background:linear-gradient(180deg,var(--bg), #eef6ff);
-    color:#0b1220;
-    padding:28px;
-    display:flex;
-    justify-content:center;
+  .wrap {
+    padding: 12px; /* Reduce padding on main container */
+    border-radius: 12px; /* Slightly smaller border radius */
   }
-  .wrap{
-    width:100%;
-    max-width:var(--maxw);
-    background:linear-gradient(180deg,#ffffff,#fbfdff);
-    border-radius:18px;
-    box-shadow:var(--shadow);
-    padding:20px;
-    overflow:hidden;
+  .layout {
+    grid-template-columns: 1fr; /* Stack the main content and sidebar */
+    gap: 12px; /* Reduce vertical gap */
   }
-  .hdr{display:flex;align-items:center;gap:16px;margin-bottom:12px}
-  .logo{
-    width:68px;height:68px;border-radius:12px;
-    background:linear-gradient(135deg,var(--accent),var(--accent-2));
-    color:white;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:22px;
-    box-shadow:0 8px 22px rgba(15,98,254,0.12)
+  .card {
+    padding: 14px; /* Reduce card padding */
+    margin-bottom: 10px;
   }
-  .title h1{margin:0;font-size:20px}
-  .title p{margin:0;color:var(--muted);font-size:13px}
-  .controls{display:flex;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}
-  .btn{
-    background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
-    box-shadow:0 8px 22px rgba(15,98,254,0.08)
+  .hdr {
+    gap: 12px;
   }
-  .btn.secondary{background:transparent;border:1px solid rgba(15,98,254,0.12);color:var(--accent);box-shadow:none}
-  .muted{color:var(--muted);font-size:13px}
-  .layout{display:grid;grid-template-columns:1fr 360px;gap:18px}
-  @media (max-width:980px){.layout{grid-template-columns:1fr}}
-  .card{background:var(--card);border-radius:12px;padding:var(--pad);box-shadow:0 6px 18px rgba(12,18,28,0.03);margin-bottom:12px}
-  .q-title{font-weight:700}
-  .meta{color:var(--muted);font-size:13px}
-  .options{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-  label.option{display:flex;align-items:center;gap:12px;background:#fbfdff;padding:10px;border-radius:10px;cursor:pointer;border:1px solid transparent}
-  label.option input{accent-color:var(--accent)}
-  label.option.correct{background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.12)}
-  label.option.incorrect{background:rgba(239,68,68,0.04);border-color:rgba(239,68,68,0.08)}
-  input.fill{width:100%;padding:10px;border-radius:10px;border:1px solid #e6edf3;background:#fbfdff}
-  .drag-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-  .drag-item{min-width:140px;padding:10px;border-radius:10px;background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid rgba(12,18,28,0.03);cursor:grab;text-align:center}
-  .drop-zone{min-width:140px;min-height:44px;border-radius:10px;border:2px dashed rgba(15,98,254,0.12);display:flex;align-items:center;justify-content:center;background:#fbfdff}
-  .drop-zone.correct{border-style:solid;border-color:var(--success);background:rgba(16,185,129,0.06)}
-  .drop-zone.incorrect{border-style:solid;border-color:var(--danger);background:rgba(239,68,68,0.04)}
-  .side{position:sticky;top:28px;height:fit-content}
-  .progress{height:12px;background:#ecf4ff;border-radius:999px;overflow:hidden;margin-top:8px}
-  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%;transition:width 700ms ease}
-  .grade{font-size:28px;font-weight:800;color:var(--accent);}
-  .small{font-size:13px;color:var(--muted)}
-  footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
-  .hidden{display:none !important}
-  .collapsible .content{max-height:0;overflow:hidden;transition:max-height 300ms ease}
-  .collapsible.open .content{max-height:1400px}
-  #confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1000}
-  /* import area */
+  .logo {
+    width: 50px; /* Smaller logo */
+    height: 50px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+  .title h1 {
+    font-size: 18px; /* Smaller title */
+  }
+  .title p {
+    font-size: 12px; /* Smaller subtitle */
+  }
+
+  /* 2. Sidebar Management */
+  .side {
+    position: static; /* Remove sticky behavior */
+    order: -1; /* Place the sidebar above the main content on mobile */
+    margin-top: 0;
+  }
+  /* The JavaScript function toggleSidebar() must add/remove the .hidden class */
+  #sidebar.hidden {
+      display: none;
+  }
+
+  /* 3. Control Button Wrapping */
+  .controls {
+    gap: 6px; /* Tighter gap for buttons */
+    margin: 10px 0;
+  }
+  .controls > .muted {
+    margin-left: 0 !important; /* Remove auto margin on the question count */
+    width: 100%; /* Make it take up full width below buttons */
+    text-align: right;
+  }
+  .btn, .btn.secondary {
+    padding: 8px 12px; /* Slightly smaller buttons */
+    font-size: 14px;
+    flex-grow: 1; /* Allow buttons to grow to fill space */
+  }
+
+  /* 4. Drag & Drop Optimization */
+  .drag-row {
+    gap: 8px; /* Tighter spacing for draggable items */
+    justify-content: space-around; /* Spread items out */
+  }
+  .drop-zone, .drag-item {
+    min-width: unset; /* Allow items to be naturally sized */
+    flex-grow: 1; /* Allow them to fill the container */
+  }
+  /* Force a better layout for the drop zones */
+  #handCard > div:last-child, 
+  #brushCard > div:last-child {
+    justify-content: space-between;
+  }
+  
+  /* 5. Import Area Layout Fix */
+  #importArea {
+    flex-direction: column; /* Stack textarea and buttons vertically */
+    align-items: stretch;
+  }
+  #importArea > div {
+    display: flex;
+    gap: 8px;
+  }
+  #importJson {
+    width: 100%;
+    height: 90px;
+  }
+}
+
+/* Fallback for extremely narrow screens (e.g., iPhone 5/SE width) */
+@media (max-width: 350px) {
+  .btn, .btn.secondary {
+    flex-basis: 100%; /* Force buttons to stack on top of each other */
+  }
+}  /* import area */
   #importArea{display:flex;gap:8px;align-items:center}
   #importJson{width:100%;height:72px;padding:10px;border-radius:10px;border:1px solid #e6edf3}
 </style>
@@ -849,3 +963,4 @@ window._PHv3 = { QUESTIONS, state, exportState, importStateText, startOrReset };
 </script>
 </body>
 </html>
+
