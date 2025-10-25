@@ -207,16 +207,13 @@ footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
     <div class="title">
       <h1 id="mainTitle">Personal Hygiene & Dental Education — Interactive Quiz (v3)</h1>
       <p>70-question comprehensive quiz • spaced repetition • export/import state</p>
-    <p>A study material for Àdúràgbèmí, answered prayers... </p>
+    <p><strong>A study material for Àdúràgbèmí, answered prayers... </strong></p>
     </div>
   </div>
 
   <div class="controls">
     <button class="btn" id="startBtn" onclick="startOrReset()">Start / Reset</button>
     <button class="btn secondary" onclick="toggleSidebar()">Toggle Summary</button>
-    <button class="btn secondary" onclick="exportState()">Export State (JSON)</button>
-    <button class="btn secondary" onclick="document.getElementById('fileInput').click()">Import State (JSON)</button>
-    <input id="fileInput" class="hidden" type="file" accept="application/json" onchange="importStateFile(event)">
     <div style="margin-left:auto" class="muted">Questions: <strong id="totalCount">70</strong></div>
   </div>
 
@@ -290,17 +287,7 @@ footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
         <button class="btn secondary" onclick="saveToLeaderboard()">Save to Leaderboard</button>
       </div>
 
-      <div style="margin-top:12px" class="card">
-        <div class="q-title">Import JSON (teacher preload)</div>
-        <div class="meta">Paste previously exported state here to preload progress for a student or class</div>
-        <div id="importArea">
-          <textarea id="importJson" placeholder='Paste exported JSON here and press "Import JSON"'></textarea>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button class="btn secondary" onclick="importStateText()">Import JSON</button>
-            <button class="btn secondary" onclick="clearImport()">Clear</button>
-          </div>
-        </div>
-      </div>
+      
 
     </main>
 
@@ -335,7 +322,7 @@ footer{margin-top:12px;color:var(--muted);text-align:center;font-size:13px}
     </aside>
   </div>
 
-  <footer>Made with on goal in mind, your success. <br> Let be be a testament to how much I love and cherish you. </footer>
+  <footer>Made with on goal in mind, your success.<br> Let be be a testament to how much I love and cherish you. </footer>
 </div>
 
 <input id="fileLoader" type="file" accept="application/json" class="hidden">
@@ -964,5 +951,6 @@ window._PHv3 = { QUESTIONS, state, exportState, importStateText, startOrReset };
 </script>
 </body>
 </html>
+
 
 
